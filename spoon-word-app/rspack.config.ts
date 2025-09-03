@@ -4,6 +4,7 @@ import { rspack } from "@rspack/core";
 import * as RefreshPlugin from "@rspack/plugin-react-refresh";
 import { ModuleFederationPlugin } from "@module-federation/enhanced/rspack";
 
+
 import { mfConfig } from "./module-federation.config";
 
 const isDev = process.env.NODE_ENV === "development";
@@ -21,21 +22,15 @@ export default defineConfig({
   },
 
   devServer: {
-    port: 80,
-    historyApiFallback: {
-      rewrites: [
-        { from: /^\/vue-account\/kakao_oauth\/kakao-access-token$/, to: '/index.html' },
-        { from: /^\/vue-account\/.*$/, to: '/index.html' },
-        { from: /./, to: '/index.html' },
-      ]
-    },
+    port: 3006,
+    historyApiFallback: true,
     watchFiles: [path.resolve(__dirname, "src")],
   },
   output: {
     // You need to set a unique value that is not equal to other applications
-    uniqueName: "main_container",
+    uniqueName: "spoon_word_app",
     // publicPath must be configured if using manifest
-    publicPath: "/",
+    publicPath: "http://localhost:3006/",
   },
 
   experiments: {
@@ -47,13 +42,6 @@ export default defineConfig({
       {
         test: /\.svg$/,
         type: "asset",
-      },
-      {
-        test: /\.(png|jpe?g|gif|webp|avif)$/i,
-        type: "asset/resource",
-        generator: {
-          filename: "assets/[name].[contenthash:6][ext]",
-        },
       },
       {
         test: /\.css$/,
