@@ -1,11 +1,18 @@
 // Participants.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import styled from 'styled-components';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useParams } from 'react-router-dom';
+import axiosInstance from "../../api/axiosInstance";
 import { StudyMember, FAKE_STUDY_MEMBERS } from '../../data/mockData';
 
+interface Member {
+    id: number; // accountProfileId
+    nickname: string;
+    role: 'LEADER' | 'MEMBER';
+}
+
 interface StudyRoomContext {
-    userRole: 'leader' | 'member';
+    userRole: 'LEADER' | 'MEMBER';
     onLeaveOrClose: () => void;
 }
 
@@ -133,21 +140,36 @@ const LeaveButton = styled.button`
 
 const Participants: React.FC = () => {
     const { userRole, onLeaveOrClose } = useOutletContext<StudyRoomContext>();
-    const [members, setMembers] = useState<StudyMember[]>([]);
+    const { id: studyId } = useParams<{ id: string }>(); // URL에서 studyId 가져오기
+    const [members, setMembers] = useState<Member[]>([]);
+    const fetchMembers = useCallback(async () => {
+        if (!studyId) return;
+        try {
+            const response = await axiosInstance.get<Member[]>(`/study-rooms/${studyId}/members`);
+            setMembers(response.data);
+        } catch (error) {
+            console.error("멤버 목록 로딩 실패:", error);
+        }
+    }, [studyId]);
 
     useEffect(() => {
-        setMembers(FAKE_STUDY_MEMBERS);
-    }, []);
+        fetchMembers();
+    }, [fetchMembers]);
 
-    const handleKickMember = (memberId: string, memberName: string) => {
+    const handleKickMember = async (memberId: number, memberName: string) => {
         if (window.confirm(`정말로 '${memberName}'님을 강퇴하시겠습니까?`)) {
-            setMembers(prev => prev.filter(m => m.id !== memberId));
-            console.log(`${memberId} 강퇴됨`);
+            try {
+                await axiosInstance.delete(`/study-rooms/${studyId}/members/${memberId}`);
+                alert(`${memberName}님을 강퇴했습니다.`);
+                fetchMembers(); // 멤버 목록 새로고침
+            } catch (error) {
+                alert("멤버 강퇴에 실패했습니다.");
+            }
         }
     };
 
-    const leader = members.find(m => m.role === 'leader');
-    const participants = members.filter(m => m.role === 'member');
+    const leader = members.find(m => m.role === 'LEADER');
+    const participants = members.filter(m => m.role === 'MEMBER');
 
     return (
         <Container>
@@ -162,7 +184,7 @@ const Participants: React.FC = () => {
                 {leader && (
                     <MemberItem>
                         <MemberInfo>
-                            <MemberName>{leader.name}</MemberName>
+                            <MemberName>{leader.nickname}</MemberName>
                         </MemberInfo>
                         <RoleBadge $type="leader">모임장</RoleBadge>
                     </MemberItem>
@@ -176,12 +198,14 @@ const Participants: React.FC = () => {
                         participants.map(p => (
                             <MemberItem key={p.id}>
                                 <MemberInfo>
-                                    <MemberName>{p.name}</MemberName>
+                                    {/* 👇 3. .name 대신 .nickname을 사용합니다. */}
+                                    <MemberName>{p.nickname}</MemberName>
                                 </MemberInfo>
                                 <MemberActions>
                                     <RoleBadge $type="member">참가자</RoleBadge>
-                                    {userRole === 'leader' && (
-                                        <KickButton onClick={() => handleKickMember(p.id, p.name)}>강퇴하기</KickButton>
+                                    {/* 👇 userRole도 대문자로 비교합니다. */}
+                                    {userRole === 'LEADER' && (
+                                        <KickButton onClick={() => handleKickMember(p.id, p.nickname)}>강퇴하기</KickButton>
                                     )}
                                 </MemberActions>
                             </MemberItem>
@@ -194,7 +218,7 @@ const Participants: React.FC = () => {
 
             <Footer>
                 <LeaveButton onClick={onLeaveOrClose}>
-                    {userRole === 'leader' ? '스터디 폐쇄하기' : '탈퇴하기'}
+                    {userRole === 'LEADER' ? '스터디 폐쇄하기' : '탈퇴하기'}
                 </LeaveButton>
             </Footer>
         </Container>

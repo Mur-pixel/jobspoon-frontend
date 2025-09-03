@@ -4,9 +4,10 @@ import { NavLink, Outlet, useNavigate, useParams } from "react-router-dom";
 import styled from "styled-components";
 import { StudyRoom } from "../types/study";
 import { FAKE_STUDY_ROOMS } from "../data/mockData";
+import axiosInstance from "../api/axiosInstance";
+import { useAuth } from "../hooks/useAuth";
 
-// 현재 사용자 역할을 시뮬레이션합니다.
-const CURRENT_USER_ROLE = "member";
+type UserRole = "LEADER" | "MEMBER";
 
 /* ─ styled-components (scoped) ─ */
 const Container = styled.div`
@@ -92,32 +93,61 @@ const ContentArea = styled.section`
 `;
 
 const JoinedStudyRoom: React.FC = () => {
-    const { id } = useParams<{ id: string }>();
+    const { id: studyId } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const [study, setStudy] = useState<StudyRoom | undefined>(undefined);
+    const { currentUserId } = useAuth();
+    const [study, setStudy] = useState<StudyRoom | null>(null);
+    const [userRole, setUserRole] = useState<UserRole>("MEMBER");
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const foundStudy = FAKE_STUDY_ROOMS.find((room) => String(room.id) === id);
-        setStudy(foundStudy);
-    }, [id]);
-
-    const handleLeaveOrClose = () => {
-        if (CURRENT_USER_ROLE === "leader") {
-            if (window.confirm("정말로 스터디를 폐쇄하시겠습니까?")) {
-                console.log(`스터디 ${id} 폐쇄됨`);
-                alert("스터디가 폐쇄되었습니다.");
+        if (!studyId) return;
+        const fetchStudyDetails = async () => {
+            try {
+                const response = await axiosInstance.get<StudyRoom>(`/study-rooms/${studyId}`);
+                setStudy(response.data);
+                // 모임장 ID와 현재 사용자 ID를 비교하여 역할 결정
+                if (response.data.hostId === currentUserId) {
+                    setUserRole("LEADER");
+                } else {
+                    setUserRole("MEMBER");
+                }
+            } catch (error) {
+                console.error("스터디 정보 로딩 실패:", error);
+                alert("스터디 정보를 불러올 수 없습니다.");
                 navigate("/");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchStudyDetails();
+    }, [studyId, currentUserId, navigate]);
+
+    const handleLeaveOrClose = async () => {
+        if (userRole === "LEADER") {
+            if (window.confirm("정말로 스터디를 폐쇄하시겠습니까? 모든 데이터가 삭제됩니다.")) {
+                try {
+                    await axiosInstance.delete(`/study-rooms/${studyId}`);
+                    alert("스터디가 폐쇄되었습니다.");
+                    navigate("/my-studies"); // 내 스터디 목록으로 이동
+                } catch (error) {
+                    alert("스터디 폐쇄에 실패했습니다.");
+                }
             }
         } else {
             if (window.confirm("정말로 스터디에서 탈퇴하시겠습니까?")) {
-                console.log(`스터디 ${id}에서 탈퇴함`);
-                alert("스터디에서 탈퇴 처리되었습니다.");
-                navigate("/");
+                try {
+                    await axiosInstance.delete(`/study-rooms/${studyId}/membership`);
+                    alert("스터디에서 탈퇴 처리되었습니다.");
+                    navigate("/my-studies");
+                } catch (error) {
+                    alert("스터디 탈퇴에 실패했습니다.");
+                }
             }
         }
     };
 
-    if (!study) {
+    if (loading || !study) {
         return <div>스터디 정보를 불러오는 중...</div>;
     }
 
@@ -126,7 +156,7 @@ const JoinedStudyRoom: React.FC = () => {
             <HeaderBox className="room-header">
                 <h2>{study.title}</h2>
                 <p>
-                    모임장: {study.host} | 인원 {study.currentMembers}/{study.maxMembers} | 진행방식:{" "}
+                    모임장: {study.hostId} | 인원 {study.currentMembers}/{study.maxMembers} | 진행방식:{" "}
                     {study.location}
                 </p>
             </HeaderBox>
@@ -142,8 +172,7 @@ const JoinedStudyRoom: React.FC = () => {
                 </Sidebar>
 
                 <ContentArea className="room-content-area">
-                    {/* context를 통해 자식에게 필요한 데이터와 함수를 전달 */}
-                    <Outlet context={{ userRole: CURRENT_USER_ROLE, onLeaveOrClose: handleLeaveOrClose }} />
+                    <Outlet context={{ userRole, onLeaveOrClose: handleLeaveOrClose }} />
                 </ContentArea>
             </Main>
         </Container>

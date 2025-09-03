@@ -1,4 +1,5 @@
 import React from "react";
+import "../assets/tailwind.css";
 
 interface ServiceModalProps {
     isOpen: boolean;

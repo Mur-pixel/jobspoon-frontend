@@ -17,6 +17,10 @@ import GithubRedirection from "./github/redirection/GithubRedirection.vue";
 import GuestRedirection from "./guest/redirection/GuestRedirection.vue";
 import NaverRedirection from "./naver/redirection/NaverRedirection.vue";
 
+const AdminLayout = () => import("./account/pages/adminPage/AdminLayout.vue");
+const AdminOverview = () => import("./account/pages/adminPage/AdminOverview.vue");
+const AdminUsers = () => import("./account/pages/adminPage/AdminUsers.vue");
+
 const routes: Array<RouteRecordRaw> = [
   { path: "/account/login", name: "VueAccountLogin", component: AccountLogin },
   { path: "/account/privacy", component: PrivacyAgreement },
@@ -26,6 +30,17 @@ const routes: Array<RouteRecordRaw> = [
   { path: "/account/admin-code", component: AdminCodeInput },
   { path: "/account/admin-login", component: GithubAdminLogin },
 
+  // ✅ 관리자 영역
+  {
+    path: "/account/admin",
+    component: AdminLayout,
+    meta: { requiresAdmin: true },
+    children: [
+      { path: "", name: "AdminOverview", component: AdminOverview },
+      { path: "users", name: "AdminUsers", component: AdminUsers },
+      // 필요 시 roles, logs, settings 등 추가
+    ],
+  },
   // 소셜/게스트 인증 콜백
   { path: "/kakao_oauth/kakao-access-token", component: KakaoRedirection },
   { path: "/google-oauth/redirect-access-token", component: GoogleRedirection },
@@ -41,5 +56,11 @@ const router = createRouter({
   history: createWebHistory("/vue-account/"),
   routes,
 });
-
+router.beforeEach((to, _from, next) => {
+  if (to.meta.requiresAdmin) {
+    const isAdmin = localStorage.getItem("isAdmin") === "true";
+    if (!isAdmin) return next("/account/login");
+  }
+  next();
+});
 export default router;

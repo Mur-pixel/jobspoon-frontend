@@ -2,11 +2,11 @@ import React, { useEffect, useState } from "react";
 import { fetchMyProfile, ProfileAppearanceResponse } from "../api/profileAppearanceApi.ts";
 import '../assets/tailwind.css'
 import { FaEdit } from "react-icons/fa";
-import ServiceModal from "./ServiceModal.tsx";
+import { useNavigate } from "react-router-dom";
 
 export default function ProfileAppearanceCard() {
     const [profile, setProfile] = useState<ProfileAppearanceResponse | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const navigate = useNavigate();
 
     // TODO: 👉 로그인 연동 전까지는 임시 하드코딩
     useEffect(() => {
@@ -79,15 +79,11 @@ export default function ProfileAppearanceCard() {
                                bg-[rgb(59,130,246)] text-[white] text-[13px] rounded-[6px]
                                hover:bg-[rgb(37,99,235)] cursor-pointer
                                transition-colors duration-200"
-                    onClick={() => setIsModalOpen(true)}>
+                    onClick={() => navigate("/mypage/profile/edit")}>
                     <FaEdit />
                     수정하기
                 </button>
             </div>
-
-            {/* 모달 컴포넌트 */}
-            <ServiceModal isOpen={isModalOpen} onClose={() =>
-                setIsModalOpen(false)} />
         </div>
     );
 }

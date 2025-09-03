@@ -14,7 +14,7 @@ import {
     FaChevronRight
 } from "react-icons/fa";
 import { MdArticle } from "react-icons/md";
-import '../assets/tailwind.css'
+import "../assets/tailwind.css";
 
 export default function SideBar() {
     const [isProfileOpen, setIsProfileOpen] = useState(true);
@@ -25,6 +25,7 @@ export default function SideBar() {
 
     return (
         <div className="h-full flex flex-col p-[16px] space-y-[24px] shadow-sm">
+
             {/* 마이페이지 토글 버튼 */}
             <button
                 onClick={() => setIsProfileOpen(!isProfileOpen)}

@@ -1,6 +1,6 @@
 import React from "react";
+import { Outlet } from "react-router-dom";
 import SideBar from "./SideBar";
-import DashboardSection from "./DashboardSection.tsx";
 import '../assets/tailwind.css'
 
 export default function MyPageLayout() {
@@ -13,7 +13,7 @@ export default function MyPageLayout() {
 
             {/* 메인 컨텐츠 */}
             <main className="flex-1 p-6 space-y-6">
-                <DashboardSection />
+                <Outlet />
             </main>
         </div>
     );
